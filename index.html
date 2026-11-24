@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#4f9cff">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg">
+<link rel="apple-touch-icon" href="icon.svg">
+<title>拼音乐园 - 一年级拼音学习</title>
+<style>
+  :root {
+    --blue: #4f9cff; --green: #34c77b; --red: #ff6b6b;
+    --yellow: #ffc93c; --purple: #9b6bff; --bg: #fdf6e9;
+    --card: #ffffff; --ink: #333333;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: var(--bg); color: var(--ink);
+    user-select: none; -webkit-user-select: none;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  #app { max-width: 560px; margin: 0 auto; min-height: 100%; display: flex; flex-direction: column; }
+
+  /* ---------- 通用页面 ---------- */
+  .page { display: none; flex: 1; flex-direction: column; padding: 16px; }
+  .page.active { display: flex; }
+  .topbar {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 14px;
+  }
+  .back-btn {
+    width: 48px; height: 48px; border-radius: 50%; border: none; background: #fff;
+    font-size: 24px; box-shadow: 0 2px 8px rgba(0,0,0,.12); flex-shrink: 0;
+  }
+  .page-title { font-size: 22px; font-weight: 700; }
+
+  .big-btn {
+    border: none; border-radius: 24px; color: #fff; font-size: 20px; font-weight: 700;
+    padding: 16px 24px; box-shadow: 0 4px 0 rgba(0,0,0,.15); cursor: pointer;
+  }
+  .big-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0,0,0,.15); }
+
+  /* ---------- 首页 ---------- */
+  #home { text-align: center; }
+  .logo { margin: 28px 0 6px; font-size: 56px; }
+  .home-title { font-size: 30px; font-weight: 800; letter-spacing: 2px; }
+  .home-sub { color: #8a8a8a; margin: 6px 0 26px; font-size: 15px; }
+  .home-menu { display: flex; flex-direction: column; gap: 16px; }
+  .home-menu .big-btn { display: flex; align-items: center; gap: 14px; text-align: left; }
+  .home-menu .big-btn .ic { font-size: 34px; }
+  .home-menu .big-btn .desc { font-size: 13px; font-weight: 400; opacity: .9; margin-top: 2px; }
+  .btn-blue { background: var(--blue); } .btn-green { background: var(--green); }
+  .btn-red { background: var(--red); }  .btn-yellow { background: var(--yellow); color: #6b4d00; }
+  .btn-purple { background: var(--purple); }
+
+  /* ---------- 认读 ---------- */
+  .tabs { display: flex; gap: 8px; margin-bottom: 14px; }
+  .tab {
+    flex: 1; padding: 10px 0; border-radius: 14px; border: none; background: #fff;
+    font-size: 16px; font-weight: 700; color: #999; box-shadow: 0 2px 6px rgba(0,0,0,.08);
+  }
+  .tab.on { background: var(--blue); color: #fff; }
+  .card-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .p-card {
+    background: var(--card); border-radius: 20px; padding: 14px 6px 10px; text-align: center;
+    box-shadow: 0 3px 10px rgba(0,0,0,.1); border: 3px solid transparent; cursor: pointer;
+  }
+  .p-card .py { font-size: 38px; font-weight: 800; color: var(--blue); line-height: 1.1; }
+  .p-card.green .py { color: var(--green); } .p-card.purple .py { color: var(--purple); }
+  .p-card .ex { margin-top: 6px; font-size: 22px; }
+  .p-card .ex span { font-size: 12px; color: #888; display: block; }
+  .p-card:active { transform: scale(.94); }
+  .hint { text-align: center; color: #aaa; font-size: 13px; margin-top: 14px; }
+
+  /* ---------- 拼读 ---------- */
+  .quiz-wrap { flex: 1; display: flex; flex-direction: column; }
+  .score-bar { display: flex; justify-content: space-between; font-size: 15px; color: #777; margin-bottom: 12px; }
+  .blend-stage {
+    background: #fff; border-radius: 24px; padding: 24px 12px; text-align: center;
+    box-shadow: 0 3px 12px rgba(0,0,0,.1); margin-bottom: 16px; position: relative; overflow: hidden;
+  }
+  .blend-row { display: flex; justify-content: center; align-items: center; gap: 8px; min-height: 110px; }
+  .blend-part {
+    min-width: 84px; padding: 12px 10px; border-radius: 18px; font-size: 44px; font-weight: 800;
+    animation: pop .3s;
+  }
+  .bp-i { background: #e3f0ff; color: var(--blue); }
+  .bp-f { background: #e0f7ea; color: var(--green); }
+  .bp-plus { font-size: 30px; color: #bbb; font-weight: 800; }
+  .bp-eq { font-size: 30px; color: #bbb; font-weight: 800; }
+  .bp-result {
+    background: #fff3d6; color: #c07f00; font-size: 50px; min-width: 130px;
+    animation: pop .45s;
+  }
+  @keyframes pop { 0% { transform: scale(.3); opacity: 0; } 70% { transform: scale(1.12); } 100% { transform: scale(1); opacity: 1; } }
+  .audio-btn {
+    margin-top: 14px; border: none; background: var(--yellow); color: #6b4d00;
+    font-size: 17px; font-weight: 700; padding: 10px 22px; border-radius: 999px;
+    box-shadow: 0 3px 0 rgba(0,0,0,.12);
+  }
+  .audio-btn:active { transform: translateY(2px); box-shadow: none; }
+
+  .q-prompt { text-align: center; font-size: 17px; color: #555; margin-bottom: 12px; }
+  .q-visual {
+    background: #fff; border-radius: 24px; padding: 20px; text-align: center; margin-bottom: 16px;
+    box-shadow: 0 3px 12px rgba(0,0,0,.1);
+  }
+  .q-visual .em { font-size: 64px; }
+  .q-visual .wd { font-size: 26px; font-weight: 800; margin-top: 4px; }
+  .q-visual .mini { font-size: 44px; font-weight: 800; }
+  .q-visual .mini .s { color: var(--blue); } .q-visual .mini .y { color: var(--green); }
+
+  .options { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .opt {
+    background: #fff; border-radius: 18px; border: 3px solid #eee; padding: 14px 6px;
+    text-align: center; font-size: 34px; font-weight: 800; cursor: pointer;
+  }
+  .opt.small { font-size: 24px; }
+  .opt .em { display: block; font-size: 34px; line-height: 1.25; }
+  .opt .main { display: block; font-size: 30px; font-weight: 800; }
+  .opt.small .main { font-size: 24px; }
+  .opt .sub { display: block; font-size: 13px; color: #999; font-weight: 400; margin-top: 3px; }
+  .py-big { font-size: 64px; font-weight: 800; color: var(--purple); padding: 12px 0; }
+  .opt:active { transform: scale(.95); }
+  .opt.right { border-color: var(--green); background: #e6f9ef; animation: bounce .4s; }
+  .opt.wrong { border-color: var(--red); background: #ffecec; animation: shake .4s; }
+  @keyframes bounce { 0%,100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+  @keyframes shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-7px); } 75% { transform: translateX(7px); } }
+
+  .feedback { text-align: center; font-size: 26px; min-height: 44px; margin-top: 10px; }
+
+  /* ---------- 闯关 ---------- */
+  .level-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  .level-btn {
+    background: #fff; border-radius: 20px; border: none; padding: 16px 10px; text-align: center;
+    box-shadow: 0 3px 10px rgba(0,0,0,.1); cursor: pointer;
+  }
+  .level-btn .lv-ic { font-size: 34px; }
+  .level-btn .lv-name { font-size: 16px; font-weight: 700; margin-top: 4px; }
+  .level-btn .lv-stars { font-size: 15px; margin-top: 2px; letter-spacing: 2px; }
+  .level-btn.locked { opacity: .45; }
+  .level-btn:active { transform: scale(.95); }
+
+  .progress-track { background: #eee; height: 14px; border-radius: 999px; overflow: hidden; margin-bottom: 14px; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--green), var(--yellow)); width: 0; transition: width .3s; }
+
+  .result-panel { text-align: center; padding: 30px 0; }
+  .result-panel .big { font-size: 60px; }
+  .result-panel .stars { font-size: 44px; letter-spacing: 6px; margin: 10px 0; }
+  .result-panel .msg { font-size: 20px; font-weight: 700; margin-bottom: 20px; }
+
+  /* ---------- 结算/杂项 ---------- */
+  .center-col { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 14px; }
+  .toast {
+    position: fixed; left: 50%; bottom: 18%; transform: translateX(-50%);
+    background: rgba(0,0,0,.75); color: #fff; padding: 10px 18px; border-radius: 999px;
+    font-size: 15px; z-index: 99; animation: pop .25s;
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+/* =========================================================
+ * 拼音乐园 —— 一年级拼音学习 PWA
+ * 结构：
+ *   1. DATA     ：声母/韵母/整体认读/拼读音节 数据（家长可自行增改）
+ *   2. AUDIO    ：语音合成封装
+ *   3. ROUTER   ：单页切换
+ *   4. 认读页面  ：点卡片听发音
+ *   5. 拼读页面  ：声母+韵母→音节，选汉字
+ *   6. 闯关页面  ：10 个关卡，题型混合，星级存 localStorage
+ * ========================================================= */
+
+/* ---------- 1. 数据（改内容只需动这里） ---------- */
+// 声母 23 个：py=显示, ex=示例词, e=emoji
+const SHENG = [
+  ['b','爸爸','👨'],['p','跑步','🏃'],['m','妈妈','👩'],['f','飞机','✈️'],
+  ['d','大象','🐘'],['t','兔子','🐰'],['n','牛奶','🥛'],['l','老虎','🐯'],
+  ['g','哥哥','👦'],['k','看书','👀'],['h','大海','🌊'],['j','积木','🧱'],
+  ['q','气球','🎈'],['x','西瓜','🍉'],['zh','竹子','🎋'],['ch','汽车','🚗'],
+  ['sh','大树','🌳'],['r','日出','🌅'],['z','走路','🚶'],['c','彩虹','🌈'],
+  ['s','松鼠','🐿️'],['y','牙齿','🦷'],['w','乌龟','🐢'],
+];
+// 韵母 24 个：按 单韵母/复韵母/前鼻/后鼻 分组
+const YUN_GROUPS = [
+  ['单韵母', [['a','喇叭','🎺'],['o','波浪','🌊'],['e','小鹅','🦢'],['i','衣服','👕'],['u','兔子','🐰'],['ü','绿色','💚']]],
+  ['复韵母', [['ai','白菜','🥬'],['ei','背书包','🎒'],['ui','喝水','💧'],['ao','棉袄','🧥'],['ou','小狗','🐶'],['iu','踢球','⚽'],['ie','蝴蝶','🦋'],['üe','下雪','❄️'],['er','耳朵','👂']]],
+  ['前鼻韵母', [['an','大山','⛰️'],['en','大门','🚪'],['in','弹琴','🎹'],['un','蚊子','🦟'],['ün','白云','☁️']]],
+  ['后鼻韵母', [['ang','山羊','🐐'],['eng','台灯','💡'],['ing','星星','⭐'],['ong','恐龙','🦖']]],
+];
+// 整体认读音节 16 个
+const ZITI = [
+  ['zhi','蜘蛛','🕷️'],['chi','尺子','📏'],['shi','狮子','🦁'],['ri','日历','📅'],
+  ['zi','写字','✍️'],['ci','刺猬','🦔'],['si','四','4️⃣'],
+  ['yi','一','1️⃣'],['wu','五','5️⃣'],['yu','小鱼','🐟'],
+  ['ye','叶子','🍃'],['yue','月亮','🌙'],['yuan','公园','🏞️'],['yin','音乐','🎶'],['yun','运动','🏃'],['ying','老鹰','🦅'],
+];
+// 拼读音节库：i=声母, f=韵母, syl=带调音节, char=汉字, word=词, e=emoji
+const SYL = [
+  {i:'b',f:'a',syl:'bà',char:'爸',word:'爸爸',e:'👨'},
+  {i:'b',f:'ai',syl:'bái',char:'白',word:'白色',e:'⚪'},
+  {i:'b',f:'i',syl:'bǐ',char:'笔',word:'铅笔',e:'✏️'},
+  {i:'p',f:'ao',syl:'pǎo',char:'跑',word:'跑步',e:'🏃'},
+  {i:'p',f:'i',syl:'pí',char:'皮',word:'皮球',e:'🏀'},
+  {i:'m',f:'a',syl:'mā',char:'妈',word:'妈妈',e:'👩'},
+  {i:'m',f:'i',syl:'mǐ',char:'米',word:'大米',e:'🍚'},
+  {i:'m',f:'ao',syl:'māo',char:'猫',word:'小猫',e:'🐱'},
+  {i:'f',f:'ei',syl:'fēi',char:'飞',word:'飞机',e:'✈️'},
+  {i:'f',f:'ang',syl:'fáng',char:'房',word:'房子',e:'🏠'},
+  {i:'d',f:'a',syl:'dà',char:'大',word:'大象',e:'🐘'},
+  {i:'d',f:'eng',syl:'dēng',char:'灯',word:'台灯',e:'💡'},
+  {i:'t',f:'u',syl:'tù',char:'兔',word:'兔子',e:'🐰'},
+  {i:'t',f:'ai',syl:'tài',char:'太',word:'太阳',e:'☀️'},
+  {i:'t',f:'ao',syl:'táo',char:'桃',word:'桃子',e:'🍑'},
+  {i:'n',f:'i',syl:'nǐ',char:'你',word:'你好',e:'🙋'},
+  {i:'n',f:'ai',syl:'nǎi',char:'奶',word:'牛奶',e:'🥛'},
+  {i:'n',f:'iu',syl:'niú',char:'牛',word:'小牛',e:'🐮'},
+  {i:'n',f:'ü',syl:'nǚ',char:'女',word:'女孩',e:'👧'},
+  {i:'l',f:'e',syl:'lè',char:'乐',word:'快乐',e:'😄'},
+  {i:'l',f:'ao',syl:'lǎo',char:'老',word:'老虎',e:'🐯'},
+  {i:'g',f:'e',syl:'gē',char:'哥',word:'哥哥',e:'👦'},
+  {i:'k',f:'an',syl:'kàn',char:'看',word:'看书',e:'👀'},
+  {i:'h',f:'ai',syl:'hǎi',char:'海',word:'大海',e:'🌊'},
+  {i:'j',f:'in',syl:'jīn',char:'金',word:'金色',e:'🥇'},
+  {i:'q',f:'i',syl:'qī',char:'七',word:'七个',e:'7️⃣'},
+  {i:'q',f:'iu',syl:'qiú',char:'球',word:'皮球',e:'⚽'},
+  {i:'x',f:'i',syl:'xī',char:'西',word:'西瓜',e:'🍉'},
+  {i:'x',f:'ie',syl:'xiě',char:'写',word:'写字',e:'✍️'},
+  {i:'x',f:'üe',syl:'xuě',char:'雪',word:'下雪',e:'❄️'},
+  {i:'x',f:'ing',syl:'xīng',char:'星',word:'星星',e:'⭐'},
+  {i:'zh',f:'u',syl:'zhū',char:'猪',word:'小猪',e:'🐷'},
+  {i:'zh',f:'ong',syl:'zhōng',char:'钟',word:'闹钟',e:'⏰'},
+  {i:'ch',f:'e',syl:'chē',char:'车',word:'汽车',e:'🚗'},
+  {i:'ch',f:'i',syl:'chī',char:'吃',word:'吃饭',e:'🍚'},
+  {i:'ch',f:'un',syl:'chūn',char:'春',word:'春天',e:'🌷'},
+  {i:'sh',f:'u',syl:'shū',char:'书',word:'读书',e:'📖'},
+  {i:'sh',f:'ang',syl:'shàng',char:'上',word:'上学',e:'🎒'},
+  {i:'sh',f:'an',syl:'shān',char:'山',word:'大山',e:'⛰️'},
+  {i:'r',f:'e',syl:'rè',char:'热',word:'很热',e:'🔥'},
+  {i:'r',f:'en',syl:'rén',char:'人',word:'大人',e:'🧑'},
+  {i:'z',f:'i',syl:'zì',char:'字',word:'汉字',e:'📝'},
+  {i:'z',f:'ou',syl:'zǒu',char:'走',word:'走路',e:'🚶'},
+  {i:'c',f:'i',syl:'cì',char:'刺',word:'刺猬',e:'🦔'},
+  {i:'s',f:'i',syl:'sì',char:'四',word:'四个',e:'4️⃣'},
+  {i:'s',f:'ong',syl:'sōng',char:'松',word:'松鼠',e:'🐿️'},
+  {i:'sh',f:'ui',syl:'shuǐ',char:'水',word:'喝水',e:'💧'},
+  {i:'h',f:'ui',syl:'huì',char:'会',word:'学会',e:'🤝'},
+  {i:'d',f:'iu',syl:'diū',char:'丢',word:'丢手绢',e:'🪁'},
+  {i:'x',f:'ün',syl:'xún',char:'寻',word:'寻找',e:'🔍'},
+];
+
+/* ---------- 2. 语音合成 ---------- */
+const AUDIO = {
+  rate: 0.72,           // 语速放慢，适合小朋友
+  unlocked: false,
+  // iOS 需要用户先触摸一次才能出声
+  unlock() {
+    if (this.unlocked) return;
+    try {
+      const u = new SpeechSynthesisUtterance('');
+      u.volume = 0; speechSynthesis.speak(u);
+      this.unlocked = true;
+    } catch (e) {}
+  },
+  speak(text, cb) {
+    if (!text) return cb && cb();
+    try {
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'zh-CN'; u.rate = this.rate;
+      const v = speechSynthesis.getVoices().find(v => /zh[-_]CN|Chinese/i.test(v.lang) && /zh|Chinese/i.test(v.name));
+      if (v) u.voice = v;
+      if (cb) u.onend = cb;
+      speechSynthesis.speak(u);
+    } catch (e) { cb && cb(); }
+  },
+  // 先拼后词："bà，爸爸"
+  speakSylThenWord(syl, word) { this.speak(syl, () => this.speak(word)); },
+};
+document.addEventListener('touchstart', () => AUDIO.unlock(), { once: true });
+document.addEventListener('click', () => AUDIO.unlock(), { once: true });
+if ('speechSynthesis' in window) speechSynthesis.getVoices(); // 提前加载声音列表
+
+/* ---------- 3. 路由 & 状态 ---------- */
+const $app = document.getElementById('app');
+const SAVE_KEY = 'pinyin-progress-v1';
+let progress = {};
+try { progress = JSON.parse(localStorage.getItem(SAVE_KEY) || '{}'); } catch (e) { progress = {}; }
+function saveProgress() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(progress)); } catch (e) {} }
+
+let curPage = null;
+function go(pageId, renderFn) {
+  if (curPage) speechSynthesis.cancel();
+  $app.innerHTML = '';
+  const page = document.createElement('div');
+  page.className = 'page active'; page.id = 'page';
+  $app.appendChild(page);
+  curPage = page;
+  renderFn(page);
+  window.scrollTo(0, 0);
+}
+function topbar(page, title, onBack) {
+  const bar = document.createElement('div');
+  bar.className = 'topbar';
+  const back = document.createElement('button');
+  back.className = 'back-btn'; back.textContent = '←';
+  back.onclick = onBack;
+  const t = document.createElement('div');
+  t.className = 'page-title'; t.textContent = title;
+  bar.append(back, t);
+  page.appendChild(bar);
+}
+function toast(msg) {
+  const t = document.createElement('div');
+  t.className = 'toast'; t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 1400);
+}
+function shuffle(a) {
+  a = a.slice();
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+
+/* ---------- 4. 首页 ---------- */
+function renderHome() {
+  go('home', page => {
+    page.id = 'home';
+    page.innerHTML = `
+      <div class="logo">🔤</div>
+      <div class="home-title">拼音乐园</div>
+      <div class="home-sub">和一年级小朋友一起快乐学拼音</div>
+      <div class="home-menu">
+        <button class="big-btn btn-blue" data-act="read">
+          <span class="ic">👀</span><span>认一认<div class="desc">声母 · 韵母 · 整体认读</div></span>
+        </button>
+        <button class="big-btn btn-green" data-act="blend">
+          <span class="ic">🧩</span><span>拼一拼<div class="desc">声母 + 韵母 = 音节</div></span>
+        </button>
+        <button class="big-btn btn-purple" data-act="level">
+          <span class="ic">🏆</span><span>闯关大冒险<div class="desc">12 个关卡，赢星星</div></span>
+        </button>
+      </div>
+      <div class="hint">点卡片或按钮就能听发音 🔊</div>`;
+    page.querySelector('[data-act=read]').onclick = () => renderRead();
+    page.querySelector('[data-act=blend]').onclick = () => renderBlend();
+    page.querySelector('[data-act=level]').onclick = () => renderLevels();
+  });
+}
+
+/* ---------- 5. 认读页面 ---------- */
+const READ_TABS = [
+  { name: '声母', cls: '', color: 'blue', items: SHENG },
+  { name: '韵母', cls: 'green', color: 'green', items: YUN_GROUPS.flatMap(g => g[1]) },
+  { name: '整体认读', cls: 'purple', color: 'purple', items: ZITI },
+];
+function renderRead(tabIdx = 0) {
+  go('read', page => {
+    topbar(page, '认一认', renderHome);
+    const tabs = document.createElement('div');
+    tabs.className = 'tabs';
+    READ_TABS.forEach((t, i) => {
+      const b = document.createElement('button');
+      b.className = 'tab' + (i === tabIdx ? ' on' : '');
+      b.textContent = t.name;
+      b.onclick = () => renderRead(i);
+      tabs.appendChild(b);
+    });
+    page.appendChild(tabs);
+
+    const grid = document.createElement('div');
+    grid.className = 'card-grid';
+    const tab = READ_TABS[tabIdx];
+    tab.items.forEach(([py, ex, e]) => {
+      const c = document.createElement('div');
+      c.className = 'p-card ' + tab.cls;
+      c.innerHTML = `<div class="py">${py}</div><div class="ex">${e}<span>${ex}</span></div>`;
+      // 点卡片：读拼音，再读示例词（拼音读不准的设备可听示例词）
+      c.onclick = () => AUDIO.speakSylThenWord(py, ex);
+      grid.appendChild(c);
+    });
+    page.appendChild(grid);
+    const hint = document.createElement('div');
+    hint.className = 'hint';
+    hint.textContent = `${tab.name}共 ${tab.items.length} 个 · 点一下听一听`;
+    page.appendChild(hint);
+  });
+}
+
+/* ---------- 6. 拼读页面 ---------- */
+function renderBlend() {
+  go('blend', page => {
+    topbar(page, '拼一拼', renderHome);
+    let pool = shuffle(SYL.slice());
+    let idx = 0, right = 0, total = 0;
+
+    const score = document.createElement('div');
+    score.className = 'score-bar';
+    const stage = document.createElement('div');
+    stage.className = 'blend-stage';
+    const qPrompt = document.createElement('div');
+    const opts = document.createElement('div');
+    opts.className = 'options';
+    const fb = document.createElement('div');
+    fb.className = 'feedback';
+    page.append(score, stage, qPrompt, opts, fb);
+
+    function next() {
+      if (idx >= pool.length) { pool = shuffle(SYL.slice()); idx = 0; }
+      const item = pool[idx++];
+      total++;
+      score.innerHTML = `<span>🧩 拼读练习</span><span>✅ 答对 ${right} / ${total}</span>`;
+      stage.innerHTML = `
+        <div class="blend-row">
+          <div class="blend-part bp-i">${item.i}</div>
+          <div class="bp-plus">+</div>
+          <div class="blend-part bp-f">${item.f}</div>
+          <div class="bp-eq">=</div>
+          <div class="blend-part bp-result">?</div>
+        </div>
+        <button class="audio-btn">🔊 拼一拼</button>`;
+      stage.querySelector('.audio-btn').onclick = ev => {
+        ev.stopPropagation();
+        const res = stage.querySelector('.bp-result');
+        res.textContent = item.syl;
+        res.style.animation = 'none'; void res.offsetWidth; res.style.animation = '';
+        AUDIO.speakSylThenWord(item.syl, item.word);
+      };
+      qPrompt.className = 'q-prompt';
+      qPrompt.textContent = '拼出来的音节，是哪个字呢？';
+      fb.textContent = '';
+
+      // 4 个选项：1 个正确 + 3 个干扰
+      const others = shuffle(SYL.filter(s => s !== item)).slice(0, 3);
+      const choices = shuffle([item, ...others]);
+      opts.innerHTML = '';
+      choices.forEach(ch => {
+        const b = document.createElement('button');
+        b.className = 'opt';
+        b.innerHTML = `<span style="font-size:40px">${ch.e}</span><span class="sub">${ch.syl} ${ch.char}（${ch.word}）</span>`;
+        b.onclick = () => {
+          if (b.classList.contains('right')) return;
+          if (ch === item) {
+            b.classList.add('right');
+            right++;
+            const res = stage.querySelector('.bp-result');
+            if (res) res.textContent = item.syl;
+            fb.textContent = '🎉 太棒了！';
+            AUDIO.speakSylThenWord(item.syl, item.word);
+            setTimeout(next, 1600);
+          } else {
+            b.classList.add('wrong');
+            fb.textContent = '💡 再想想哦';
+            AUDIO.speak(item.syl);
+          }
+          score.innerHTML = `<span>🧩 拼读练习</span><span>✅ 答对 ${right} / ${total}</span>`;
+        };
+        opts.appendChild(b);
+      });
+    }
+    next();
+  });
+}
+
+/* ---------- 7. 闯关页面 ---------- */
+const pickN = (arr, n) => shuffle(arr).slice(0, n);
+const one = arr => pickN(arr, 1)[0];
+const randOf = gens => gens[Math.floor(Math.random() * gens.length)]();
+
+const ALL_YUN = YUN_GROUPS.flatMap(g => g[1]);
+const ALL_YUN_PY = ALL_YUN.map(y => y[0]);
+const sylOf = inis => SYL.filter(s => inis.includes(s.i));
+const sylWithFinal = f => SYL.filter(s => s.f === f);
+const FU_YUN = YUN_GROUPS[1][1];          // 9 个复韵母
+const QIAN_YUN = YUN_GROUPS[2][1];        // 5 个前鼻韵母
+const HOU_YUN = YUN_GROUPS[3][1];         // 4 个后鼻韵母
+
+// 易混淆对（出干扰项时优先使用，专治 an/ang、zh/z、n/l 这些经典易错点）
+const INIT_CONFUSE = { zh:'z', z:'zh', ch:'c', c:'ch', sh:'s', s:'sh', n:'l', l:'n',
+  b:'p', p:'b', d:'t', t:'d', g:'k', k:'g', f:'h', h:'f', j:'q', q:'j', x:'q', m:'n', r:'l' };
+const FINAL_CONFUSE = { an:'ang', ang:'an', en:'eng', eng:'en', in:'ing', ing:'in',
+  ai:'ei', ei:'ai', ao:'ou', ou:'ao', iu:'ui', ui:'iu', ie:'üe', üe:'ie',
+  un:'ün', ün:'un', u:'ü', ü:'u', ong:'eng', a:'o', o:'e', e:'a' };
+const ZITI_CONFUSE = { zhi:'chi', chi:'shi', shi:'zhi', zi:'ci', ci:'si', si:'zi',
+  yi:'yu', yu:'wu', wu:'yu', ye:'yue', yue:'ye', yuan:'yun', yun:'yuan', yin:'ying', ying:'yin', ri:'li' };
+
+// 从 pool 里挑 n 个干扰拼音（优先易混淆项）
+function distract(py, confuseMap, pool, n) {
+  const out = [];
+  const c = confuseMap[py];
+  if (c && pool.includes(c) && c !== py) out.push(c);
+  for (const p of shuffle(pool)) {
+    if (out.length >= n) break;
+    if (p !== py && !out.includes(p)) out.push(p);
+  }
+  return out;
+}
+function distractItems(ans, pool, confuseMap) {
+  return distract(ans[0], confuseMap, pool.map(p => p[0]), 3)
+    .map(p => pool.find(x => x[0] === p));
+}
+
+/* ---- 7 种题型（ans 为正确项） ---- */
+
+// ① 听词语 → 选拼音卡片
+function qListenPickOne(ans, pool, kind, confuseMap) {
+  const opts = shuffle([ans, ...distractItems(ans, pool, confuseMap)]);
+  return {
+    prompt: `听一听，${kind}是哪一个？`,
+    audioText: ans[1] + '，' + ans[1],
+    autoPlay: true,
+    options: opts.map(o => ({ emoji: o[2], main: o[0] })),
+    answer: opts.indexOf(ans),
+    correctAudio: ans[1],
+  };
+}
+// ② 看词语和图 → 选拼音
+function qWordPickOne(ans, pool, kind, confuseMap) {
+  const opts = shuffle([ans, ...distractItems(ans, pool, confuseMap)]);
+  return {
+    prompt: `看一看，${kind}是哪一个？`,
+    visual: { emoji: ans[2], word: ans[1] },
+    options: opts.map(o => ({ main: o[0] })),
+    answer: opts.indexOf(ans),
+    correctAudio: ans[1],
+  };
+}
+// ③ 看拼音 → 选词语
+function qItemPickWordOne(ans, pool, confuseMap) {
+  const opts = shuffle([ans, ...distractItems(ans, pool, confuseMap)]);
+  return {
+    prompt: '读一读，它是哪个词？',
+    visual: { py: ans[0] },
+    options: opts.map(o => ({ emoji: o[2], main: o[1] })),
+    answer: opts.indexOf(ans),
+    correctAudio: ans[1],
+  };
+}
+// ④ 声母 + 韵母 → 选字（选项不显示拼音，必须真的会拼）
+function qBlendOne(ans) {
+  const opts = shuffle([ans, ...pickN(SYL.filter(s => s !== ans), 3)]);
+  return {
+    prompt: '拼一拼，是哪个字？',
+    visual: { blend: { i: ans.i, f: ans.f, syl: ans.syl, word: ans.word } },
+    options: opts.map(o => ({ emoji: o.e, main: o.char, sub: o.word })),
+    answer: opts.indexOf(ans),
+    correctAudio: ans.syl + '，' + ans.word,
+  };
+}
+// ⑤ 听音节 → 选音节
+function qListenPickSylOne(ans) {
+  const opts = shuffle([ans, ...pickN(SYL.filter(s => s !== ans), 3)]);
+  return {
+    prompt: '听音节，选出来',
+    audioText: ans.syl + '，' + ans.syl,
+    autoPlay: true,
+    options: opts.map(o => ({ main: o.syl })),
+    answer: opts.indexOf(ans),
+    correctAudio: ans.syl,
+  };
+}
+// ⑥ 缺声母：大象 dà = ? + à
+function qPickInitialOne(ans) {
+  const ds = distract(ans.i, INIT_CONFUSE, SHENG.map(s => s[0]), 3);
+  const opts = shuffle([ans.i, ...ds]);
+  return {
+    prompt: '缺了哪个声母？',
+    visual: { emoji: ans.e, word: ans.word, fill: { i: '?', f: ans.syl.slice(ans.i.length), syl: ans.syl } },
+    options: opts.map(p => ({ main: p, sub: SHENG.find(s => s[0] === p)[1] })),
+    answer: opts.indexOf(ans.i),
+    correctAudio: ans.syl + '，' + ans.word,
+  };
+}
+// ⑦ 缺韵母：兔子 tù = t + ?
+function qPickFinalOne(ans) {
+  const ds = distract(ans.f, FINAL_CONFUSE, ALL_YUN_PY, 3);
+  const opts = shuffle([ans.f, ...ds]);
+  return {
+    prompt: '缺了哪个韵母？',
+    visual: { emoji: ans.e, word: ans.word, fill: { i: ans.i, f: '?', syl: ans.syl } },
+    options: opts.map(p => ({ main: p })),
+    answer: opts.indexOf(ans.f),
+    correctAudio: ans.syl + '，' + ans.word,
+  };
+}
+
+/* ---- 覆盖式出题：items 每个出一题、不重不漏，题型随机 ---- */
+function coverQuestions(items, makeQ) {
+  return shuffle(items).map(makeQ);
+}
+function padTo(qs, n, gen) {
+  while (qs.length < n) qs.push(gen());
+  return qs;
+}
+
+/* ---- 关卡定义（12 关） ---- */
+const LEVELS = [
+  { id: 1, ic: '🅰️', name: '单韵母 a o e i u ü', build: () =>
+      coverQuestions(YUN_GROUPS[0][1], it => randOf([
+        () => qListenPickOne(it, YUN_GROUPS[0][1], '单韵母', FINAL_CONFUSE),
+        () => qWordPickOne(it, YUN_GROUPS[0][1], '单韵母', FINAL_CONFUSE),
+      ])) },
+  { id: 2, ic: '🎯', name: '声母 b p m f', build: () => {
+      const ps = SHENG.filter(s => 'bpmf'.includes(s[0]));
+      return padTo(coverQuestions(ps, it => qWordPickOne(it, ps, '声母', INIT_CONFUSE)), 8,
+        () => randOf([() => qBlendOne(one(sylOf('bpmf'.split('')))), () => qPickInitialOne(one(sylOf('bpmf'.split(''))))])); } },
+  { id: 3, ic: '🅱️', name: '声母 d t n l', build: () => {
+      const ps = SHENG.filter(s => 'dtnl'.includes(s[0]));
+      return padTo(coverQuestions(ps, it => randOf([
+        () => qWordPickOne(it, ps, '声母', INIT_CONFUSE),
+        () => qPickInitialOne(one(sylOf('dtnl'.split('')))),
+      ])), 8, () => qBlendOne(one(sylOf('dtnl'.split(''))))); } },
+  { id: 4, ic: '🗣️', name: '声母 g k h j q x', build: () => {
+      const ps = SHENG.filter(s => 'gkhjqx'.includes(s[0]));
+      return padTo(coverQuestions(ps, it => qWordPickOne(it, ps, '声母', INIT_CONFUSE)), 8,
+        () => randOf([() => qBlendOne(one(sylOf(['g','k','h','j','q','x']))), () => qPickInitialOne(one(sylOf(['g','k','h','j','q','x'])))])); } },
+  { id: 5, ic: '👄', name: '声母 zh ch sh r z c s', build: () => {
+      const ps = SHENG.filter(s => ['zh','ch','sh','r','z','c','s'].includes(s[0]));
+      return padTo(coverQuestions(ps, it => qWordPickOne(it, ps, '声母', INIT_CONFUSE)), 8,
+        () => randOf([() => qBlendOne(one(sylOf(['zh','ch','sh','r','z','c','s']))), () => qPickInitialOne(one(sylOf(['zh','ch','sh','r','z','c','s'])))])); } },
+  { id: 6, ic: '🧩', name: '拼读小能手', build: () =>
+      Array.from({ length: 8 }, () => randOf([() => qBlendOne(one(SYL)), () => qListenPickSylOne(one(SYL))])) },
+  // 9 个复韵母全覆盖
+  { id: 7, ic: '✌️', name: '复韵母九兄弟', build: () =>
+      coverQuestions(FU_YUN, it => randOf([
+        () => qListenPickOne(it, FU_YUN, '复韵母', FINAL_CONFUSE),
+        () => qWordPickOne(it, FU_YUN, '复韵母', FINAL_CONFUSE),
+        () => qItemPickWordOne(it, FU_YUN, FINAL_CONFUSE),
+      ])) },
+  // 5 个前鼻韵母全覆盖
+  { id: 8, ic: '👃', name: '前鼻韵母', build: () =>
+      padTo(coverQuestions(QIAN_YUN, it => randOf([
+        () => qListenPickOne(it, QIAN_YUN, '前鼻韵母', FINAL_CONFUSE),
+        () => qWordPickOne(it, QIAN_YUN, '前鼻韵母', FINAL_CONFUSE),
+      ])), 6, () => qPickFinalOne(one(sylWithFinal('an').concat(sylWithFinal('in'), sylWithFinal('un'))))) },
+  // 4 个后鼻韵母全覆盖
+  { id: 9, ic: '🔔', name: '后鼻韵母', build: () =>
+      padTo(coverQuestions(HOU_YUN, it => randOf([
+        () => qListenPickOne(it, HOU_YUN, '后鼻韵母', FINAL_CONFUSE),
+        () => qWordPickOne(it, HOU_YUN, '后鼻韵母', FINAL_CONFUSE),
+      ])), 6, () => qPickFinalOne(one(sylWithFinal('ang').concat(sylWithFinal('eng'), sylWithFinal('ing'), sylWithFinal('ong'))))) },
+  // 整体认读音节 16 个全覆盖（分两关）
+  { id: 10, ic: '📖', name: '整体认读（一）', build: () =>
+      coverQuestions(ZITI.slice(0, 7), it => randOf([
+        () => qListenPickOne(it, ZITI, '整体认读音节', ZITI_CONFUSE),
+        () => qWordPickOne(it, ZITI, '整体认读音节', ZITI_CONFUSE),
+        () => qItemPickWordOne(it, ZITI, ZITI_CONFUSE),
+      ])) },
+  { id: 11, ic: '📗', name: '整体认读（二）', build: () =>
+      coverQuestions(ZITI.slice(7), it => randOf([
+        () => qListenPickOne(it, ZITI, '整体认读音节', ZITI_CONFUSE),
+        () => qWordPickOne(it, ZITI, '整体认读音节', ZITI_CONFUSE),
+        () => qItemPickWordOne(it, ZITI, ZITI_CONFUSE),
+      ])) },
+  { id: 12, ic: '👑', name: '终极大挑战', build: () =>
+      Array.from({ length: 10 }, () => randOf([
+        () => qBlendOne(one(SYL)),
+        () => qListenPickSylOne(one(SYL)),
+        () => qPickInitialOne(one(SYL)),
+        () => qPickFinalOne(one(SYL)),
+        () => qWordPickOne(one(ZITI), ZITI, '整体认读音节', ZITI_CONFUSE),
+        () => qItemPickWordOne(one(ZITI), ZITI, ZITI_CONFUSE),
+        () => qListenPickOne(one(FU_YUN), FU_YUN, '复韵母', FINAL_CONFUSE),
+      ])) },
+];
+
+function starsOf(id) { return progress['lv' + id] || 0; }
+function starsText(n) { return '★★★'.slice(0, n) + '☆☆☆'.slice(0, 3 - n); }
+function levelUnlocked(idx) { return idx === 0 || starsOf(LEVELS[idx - 1].id) > 0; }
+
+function renderLevels() {
+  go('levels', page => {
+    topbar(page, '🏆 闯关大冒险', renderHome);
+    const grid = document.createElement('div');
+    grid.className = 'level-grid';
+    LEVELS.forEach((lv, idx) => {
+      const unlocked = levelUnlocked(idx);
+      const b = document.createElement('button');
+      b.className = 'level-btn' + (unlocked ? '' : ' locked');
+      b.innerHTML = `<div class="lv-ic">${unlocked ? lv.ic : '🔒'}</div>
+        <div class="lv-name">第${idx + 1}关 ${lv.name}</div>
+        <div class="lv-stars">${unlocked ? starsText(starsOf(lv.id)) : '通关上一关解锁'}</div>`;
+      if (unlocked) b.onclick = () => runLevel(idx);
+      else b.onclick = () => toast('先闯过上一关哦 ⭐');
+      grid.appendChild(b);
+    });
+    page.appendChild(grid);
+  });
+}
+
+function runLevel(idx) {
+  const lv = LEVELS[idx];
+  go('level', page => {
+    topbar(page, `第${idx + 1}关 ${lv.name}`, renderLevels);
+    const track = document.createElement('div');
+    track.className = 'progress-track';
+    const fill = document.createElement('div');
+    fill.className = 'progress-fill';
+    track.appendChild(fill);
+    const body = document.createElement('div');
+    body.className = 'quiz-wrap';
+    page.append(track, body);
+
+    const questions = lv.build();
+    const total = questions.length;
+    let qIdx = 0, right = 0;
+    let q = null, wrongTried = false;
+
+    function nextQ() {
+      if (qIdx >= total) return showResult();
+      q = questions[qIdx]; wrongTried = false;
+      fill.style.width = (qIdx / total * 100) + '%';
+      body.innerHTML = '';
+
+      const prompt = document.createElement('div');
+      prompt.className = 'q-prompt';
+      prompt.textContent = `${qIdx + 1}/${total} · ${q.prompt}`;
+      body.appendChild(prompt);
+
+      // 题干
+      if (q.visual) {
+        const v = document.createElement('div');
+        v.className = 'q-visual';
+        if (q.visual.py) {                                  // 大拼音卡片
+          v.innerHTML = `<div class="py-big">${q.visual.py}</div>`;
+        } else if (q.visual.blend) {                        // 声母+韵母 拼读
+          const { i, f, syl, word } = q.visual.blend;
+          v.innerHTML = `<div class="mini"><span class="s">${i}</span> + <span class="y">${f}</span> = ?</div>
+            <button class="audio-btn" style="margin-top:8px">🔊 听拼读</button>`;
+          v.querySelector('.audio-btn').onclick = ev => {
+            ev.stopPropagation();
+            AUDIO.speakSylThenWord(syl, word);
+          };
+        } else if (q.visual.fill) {                         // 缺声母/缺韵母 填空
+          const { i, f, syl } = q.visual.fill;
+          v.innerHTML = `<div class="em">${q.visual.emoji}</div><div class="wd">${q.visual.word}</div>
+            <div class="mini"><span class="s">${i}</span> + <span class="y">${f}</span> = ${syl}</div>`;
+          v.onclick = () => AUDIO.speak(q.visual.word);
+        } else {                                            // 看图词
+          v.innerHTML = `<div class="em">${q.visual.emoji}</div><div class="wd">${q.visual.word}</div>`;
+          v.onclick = () => AUDIO.speak(q.visual.word);
+        }
+        body.appendChild(v);
+      }
+      if (q.audioText) {
+        const ab = document.createElement('button');
+        ab.className = 'audio-btn';
+        ab.textContent = '🔊 再听一遍';
+        ab.onclick = () => AUDIO.speak(q.audioText);
+        const wrap = document.createElement('div');
+        wrap.style.textAlign = 'center'; wrap.style.marginBottom = '14px';
+        wrap.appendChild(ab);
+        body.appendChild(wrap);
+        if (q.autoPlay) setTimeout(() => AUDIO.speak(q.audioText), 350);
+      }
+
+      // 选项
+      const opts = document.createElement('div');
+      opts.className = 'options';
+      q.options.forEach((o, oi) => {
+        const b = document.createElement('button');
+        b.className = 'opt' + (o.main && o.main.length > 2 ? ' small' : '');
+        b.innerHTML =
+          (o.emoji ? `<span class="em">${o.emoji}</span>` : '') +
+          `<span class="main">${o.main}</span>` +
+          (o.sub ? `<span class="sub">${o.sub}</span>` : '');
+        b.onclick = () => {
+          if (b.classList.contains('right')) return;
+          if (oi === q.answer) {
+            if (!wrongTried) right++;
+            b.classList.add('right');
+            body.querySelectorAll('.opt.wrong').forEach(x => x.classList.remove('wrong'));
+            AUDIO.speak(q.correctAudio);
+            setTimeout(nextQ, 1300);
+          } else {
+            wrongTried = true;
+            b.classList.remove('wrong'); void b.offsetWidth; // 重触发抖动动画
+            b.classList.add('wrong');
+            AUDIO.speak(q.audioText || q.correctAudio);
+          }
+        };
+        opts.appendChild(b);
+      });
+      body.appendChild(opts);
+      qIdx++;
+    }
+
+    function showResult() {
+      fill.style.width = '100%';
+      const stars = right >= total ? 3 : right >= total - 2 ? 2 : right >= total / 2 ? 1 : 0;
+      if (stars > starsOf(lv.id)) { progress['lv' + lv.id] = stars; saveProgress(); }
+      body.innerHTML = '';
+      const p = document.createElement('div');
+      p.className = 'result-panel';
+      const msg = stars === 3 ? '完美通关！你太厉害啦！' : stars >= 1 ? '闯关成功，继续加油！' : '再试一次，你一定行！';
+      p.innerHTML = `<div class="big">${stars === 3 ? '🏆' : stars >= 1 ? '🎉' : '💪'}</div>
+        <div class="stars">${starsText(stars)}</div>
+        <div class="msg">答对 ${right} / ${total} · ${msg}</div>`;
+      const retry = document.createElement('button');
+      retry.className = 'big-btn btn-blue'; retry.textContent = '🔁 再玩一次';
+      retry.onclick = () => runLevel(idx);
+      const back = document.createElement('button');
+      back.className = 'big-btn btn-green'; back.textContent = '🗺️ 返回关卡地图';
+      back.onclick = renderLevels;
+      p.append(retry, back);
+      retry.style.display = 'block'; back.style.display = 'block';
+      retry.style.margin = '0 auto 12px'; back.style.margin = '0 auto';
+      body.appendChild(p);
+      if (stars >= 1) AUDIO.speak('闯关成功，你真棒！');
+    }
+
+    nextQ();
+  });
+}
+
+/* ---------- 启动 ---------- */
+renderHome();
+
+// 注册 Service Worker（本地 file:// 打开时无 PWA 功能，需 http 服务）
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>

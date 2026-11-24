@@ -1,0 +1,19 @@
+{
+  "name": "拼音乐园 - 一年级拼音学习",
+  "short_name": "拼音乐园",
+  "description": "帮助一年级小朋友学习汉语拼音：认读声母韵母、拼读音节、闯关游戏",
+  "lang": "zh-CN",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fdf6e9",
+  "theme_color": "#4f9cff",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
